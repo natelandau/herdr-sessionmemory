@@ -4,7 +4,7 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex, Input, InputState } from "gpui-base";
 import { props, closeOverlay, theme, exec, setShared } from "herdr";
 import { NEW_KINDS, BACKLOG_KINDS, SIZES, newArgs } from "./lib.js";
-import { chip, button } from "./ui.js";
+import { chip, button, px } from "./ui.js";
 
 function report(msg) {
   setShared("sessionmemory.open", { ...msg, nonce: `${Date.now()}-${Math.random()}` });
@@ -30,7 +30,7 @@ function runCli(dialog, args, cx, done) {
 
 function footer(t, dialog, id, label, busyLabel, onClick) {
   return [
-    dialog.error ? div().text_size(12).text_color(t.blocked).child(dialog.error) : null,
+    dialog.error ? div().text_size(px(12)).text_color(t.blocked).child(dialog.error) : null,
     div().flex_1(),
     h_flex().justify_end().gap(8)
       .child(button(t, "sm-cancel", "Cancel", false, () => closeOverlay(props().overlay)))
@@ -81,10 +81,10 @@ export class NewDialog {
 
   render() {
     const t = theme(), fields = this.fields();
-    const label = text => div().text_size(11).text_color(t.dim).child(text);
-    const field = name => Input.new(this.inputs[name]).h(30).px(8).rounded(6).border_1().border_color(t.input).bg(t.background).text_size(13);
-    return v_flex().id("sm-new-dialog").size_full().p(18).gap(10).bg(t.popover).text_color(t.foreground).text_size(13)
-      .child(div().text_size(15).font_semibold().child("New page"))
+    const label = text => div().text_size(px(11)).text_color(t.dim).child(text);
+    const field = name => Input.new(this.inputs[name]).h(px(30)).px(8).rounded(6).border_1().border_color(t.input).bg(t.background).text_size(px(13));
+    return v_flex().id("sm-new-dialog").size_full().p(18).gap(10).bg(t.popover).text_color(t.foreground).text_size(px(13))
+      .child(div().text_size(px(15)).font_semibold().child("New page"))
       .child(chipRow(t, "sm-kind", NEW_KINDS, this.kind, v => { this.kind = v; this.error = null; }))
       .when(fields.includes("kind"), el => el
         .child(label("Kind"))
@@ -120,10 +120,10 @@ export class ConfirmDialog {
 
   render() {
     const t = theme(), p = props();
-    return v_flex().id("sm-confirm").size_full().p(18).gap(10).bg(t.popover).text_color(t.foreground).text_size(13)
+    return v_flex().id("sm-confirm").size_full().p(18).gap(10).bg(t.popover).text_color(t.foreground).text_size(px(13))
       .track_focus(this.handle)
       .on_key_down((e, cx) => { if (e.key === "enter") { this.remove(cx); cx.stop_propagation(); } })
-      .child(div().text_size(15).font_semibold().truncate().child(`Delete "${p.title}"?`))
+      .child(div().text_size(px(15)).font_semibold().truncate().child(`Delete "${p.title}"?`))
       .child(div().text_color(t.muted).child("This deletes the page permanently."))
       .children(footer(t, this, "sm-delete", "Delete", "Deleting…", (_e, cx) => this.remove(cx)));
   }

@@ -4,7 +4,7 @@ import { v_flex, h_flex, TextView, Editor, EditorState } from "gpui-base";
 import { theme, settings, readTextFile, writeTextFile, watchFolder, exec, run, shared, openOverlay } from "herdr";
 import { parsePage, pageTitle, bumpUpdated, isoNow } from "./lib.js";
 import { context, resolve, cached, listSections, forget, isOpen, openPanel, PANEL } from "./vault.js";
-import { chip, button } from "./ui.js";
+import { chip, button, px, textScale, setTextScale } from "./ui.js";
 
 const WIDE = 560;
 
@@ -157,7 +157,7 @@ export class Panel {
     const t = theme(), pg = this.page;
     const editor = pg.editor = EditorState.new({
       language: "markdown", value: this.drafts.get(pg.path)?.text ?? pg.text, soft_wrap: true,
-      font_family: settings().font_family, font_size: 13,
+      font_family: settings().font_family, font_size: px(13),
       syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6 },
     });
     editor.on("change", (_e, cx) => {
@@ -284,14 +284,14 @@ export class Panel {
 
   newPage() {
     if (!this.paths) return;
-    openOverlay({ mod: "sessionmemory", kind: "dialog", modal: true, width: 440, height: 400,
+    openOverlay({ mod: "sessionmemory", kind: "dialog", modal: true, width: px(440), height: px(400),
       props: { role: "new", root: this.root, project: this.paths.project, section: this.section } });
   }
 
   deletePage() {
     const pg = this.page;
     if (!pg || pg.path === this.paths?.backlog) return;
-    openOverlay({ mod: "sessionmemory", kind: "dialog", width: 380, height: 170,
+    openOverlay({ mod: "sessionmemory", kind: "dialog", width: px(380), height: px(170),
       props: { role: "confirm", path: pg.path, title: pageTitle(pg.parsed.meta, pg.path), project: this.paths.project } });
   }
 
@@ -325,7 +325,7 @@ export class Panel {
     this.inbox(cx);
     this.refreshIfStale(cx);
     const t = theme();
-    const root = v_flex().id("sm-panel").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
+    const root = v_flex().id("sm-panel").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(px(13))
       .on_size_change((size, cx) => { if (Math.abs(size.width - this.width) > 1) { this.width = size.width; cx.notify(); } })
       .track_focus(this.handle)
       .on_key_down((e, cx) => {
@@ -349,32 +349,48 @@ export class Panel {
   }
 
   header(t) {
-    return h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
-      .child(svg("mods/sessionmemory/vault.svg").size(14).text_color(t.muted))
+    return h_flex().h(px(42)).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
+      .child(svg("mods/sessionmemory/vault.svg").size(px(14)).text_color(t.muted))
       .child(div().font_semibold().child("Vault"))
-      .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.dim).child(this.paths.project.split("/").pop()))
-      .when(Boolean(this.flash), el => el.child(div().text_size(12).text_color(t.done).child(this.flash?.text ?? "")))
-      .child(h_flex().id("sm-new").h(26).px(9).gap(5).items_center().rounded(6).text_size(12).text_color(t.muted)
+      .child(div().flex_1().min_w(0).truncate().text_size(px(12)).text_color(t.dim).child(this.paths.project.split("/").pop()))
+      .when(Boolean(this.flash), el => el.child(div().text_size(px(12)).text_color(t.done).child(this.flash?.text ?? "")))
+      .child(this.sizeButton(t, "smaller", "A−", -0.1))
+      .child(this.sizeButton(t, "larger", "A+", 0.1))
+      .child(h_flex().id("sm-new").h(px(26)).px(9).gap(5).items_center().rounded(6).text_size(px(12)).text_color(t.muted)
         .hover(s => s.bg(t.hover).text_color(t.foreground)).cursor_pointer()
         .on_click(() => this.newPage()).child("+ New"));
+  }
+
+  sizeButton(t, id, label, step) {
+    return div().id(`sm-text-${id}`).px(6).py(2).rounded(6).text_size(px(12)).text_color(t.muted).cursor_pointer()
+      .hover(s => s.bg(t.hover).text_color(t.foreground))
+      .on_click((_e, cx) => this.resize(textScale() + step, cx)).child(label);
+  }
+
+  // The editor's font size is fixed when it is made, so an open editor is made again; drafts keep its text.
+  resize(scale, cx) {
+    setTextScale(scale);
+    const pg = this.page;
+    if (pg?.editor) { pg.editor.release(); pg.editor = null; this.makeEditor(); }
+    cx.notify();
   }
 
   chips(t) {
     return h_flex().flex_none().px(10).py(8).gap(4).border_b(1).border_color(t.border)
       .children(this.sections.map(s => chip(t, `sm-chip-${s.key}`, s.key === this.section, (_e, cx) => this.pick(s.key, cx))
         .child(s.label)
-        .when(s.count !== null, el => el.child(div().text_size(11).text_color(t.dim).child(String(s.count))))));
+        .when(s.count !== null, el => el.child(div().text_size(px(11)).text_color(t.dim).child(String(s.count))))));
   }
 
   bar(t, text, actions, onPick) {
-    return h_flex().flex_none().px(12).py(6).gap(8).items_center().bg(t.raised).border_b(1).border_color(t.border).text_size(12)
+    return h_flex().flex_none().px(12).py(6).gap(8).items_center().bg(t.raised).border_b(1).border_color(t.border).text_size(px(12))
       .child(div().flex_1().min_w(0).text_color(t.foreground).child(text))
       .children(actions.map(([id, label]) => button(t, `sm-bar-${id}`, label, false, (_e, cx) => onPick(id, cx))));
   }
 
   list(t, section, beside) {
     return v_flex().id("sm-list").h_full().min_h(0).p(6).overflow_y_scrollbar()
-      .when(beside, el => el.w(240).flex_none().border_r(1).border_color(t.border))
+      .when(beside, el => el.w(px(240)).flex_none().border_r(1).border_color(t.border))
       .when(!beside, el => el.flex_1())
       .children(this.rows(t, section.key, section.pages, 0, []));
   }
@@ -383,10 +399,10 @@ export class Panel {
     for (const n of nodes) {
       if (n.dir) {
         const id = `${this.paths.project}/${sectionKey}/${n.rel}`, open = this.expanded.has(id);
-        out.push(h_flex().id(`sm-dir-${id}`).h(28).flex_none().pl(6 + depth * 14).pr(6).gap(6).items_center().rounded(6)
+        out.push(h_flex().id(`sm-dir-${id}`).h(px(28)).flex_none().pl(6 + depth * 14).pr(6).gap(6).items_center().rounded(6)
           .cursor_pointer().hover(s => s.bg(t.hover)).text_color(t.muted)
           .on_click((_e, cx) => { if (open) this.expanded.delete(id); else this.expanded.add(id); cx.notify(); })
-          .child(svg(`mods/files/chevron-${open ? "down" : "right"}.svg`).size(12).text_color(t.dim))
+          .child(svg(`mods/files/chevron-${open ? "down" : "right"}.svg`).size(px(12)).text_color(t.dim))
           .child(div().flex_1().min_w(0).truncate().child(n.name)));
         if (open) this.rows(t, sectionKey, n.children, depth + 1, out);
         continue;
@@ -398,7 +414,7 @@ export class Panel {
         .child(h_flex().gap(6).items_center()
           .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(n.title))
           .when(unsaved, el => el.child(div().size(6).rounded(3).bg(t.blocked))))
-        .when(Boolean(n.sub), el => el.child(div().truncate().text_size(11).text_color(t.dim).child(n.sub))));
+        .when(Boolean(n.sub), el => el.child(div().truncate().text_size(px(11)).text_color(t.dim).child(n.sub))));
     }
     return out;
   }
@@ -408,22 +424,22 @@ export class Panel {
     const title = !meta.title && pg.path === this.paths.backlog ? "Backlog" : pageTitle(meta, pg.path);
     const seg = (id, label) => chip(t, `sm-mode-${id}`, pg.mode === id, (_e, cx) => this.setMode(id, cx)).child(label);
     return v_flex().flex_1().h_full().min_w(0).min_h(0)
-      .child(h_flex().h(38).flex_none().px(12).gap(8).items_center().border_b(1).border_color(t.border)
-        .when(!wide && !section?.file, el => el.child(div().id("sm-back").w(18).cursor_pointer().text_color(t.muted)
+      .child(h_flex().h(px(38)).flex_none().px(12).gap(8).items_center().border_b(1).border_color(t.border)
+        .when(!wide && !section?.file, el => el.child(div().id("sm-back").w(px(18)).cursor_pointer().text_color(t.muted)
           .on_click((_e, cx) => this.guard(cx => { this.setPage(null); cx.notify(); }, cx)).child("←")))
         .child(div().flex_1().min_w(0).truncate().font_semibold().child(title))
-        .when(this.dirty(), el => el.child(div().text_size(11).text_color(t.blocked).child("Unsaved")))
+        .when(this.dirty(), el => el.child(div().text_size(px(11)).text_color(t.blocked).child("Unsaved")))
         .child(h_flex().gap(2).child(seg("view", "View")).child(seg("edit", "Edit")))
         .when(pg.mode === "edit", el => el.child(button(t, "sm-save", "Save", true, (_e, cx) => this.save(cx))))
-        .when(pg.path !== this.paths.backlog, el => el.child(div().id("sm-delete").px(6).py(3).rounded(6).text_size(12)
+        .when(pg.path !== this.paths.backlog, el => el.child(div().id("sm-delete").px(6).py(3).rounded(6).text_size(px(12))
           .text_color(t.dim).cursor_pointer().hover(s => s.bg(t.hover).text_color(t.blocked))
           .on_click(() => this.deletePage()).child("Delete"))))
       .child(pg.editor
         ? Editor.new(pg.editor).flex_1().min_h(0)
         : v_flex().id("sm-view").flex_1().min_h(0).overflow_y_scrollbar().px(18).py(14).gap(6)
-          .when(Boolean(meta.title), el => el.child(div().text_size(20).font_semibold().child(meta.title)))
+          .when(Boolean(meta.title), el => el.child(div().text_size(px(20)).font_semibold().child(meta.title)))
           .when(Boolean(meta.summary), el => el.child(div().pb(6).text_color(t.muted).italic().child(meta.summary)))
-          .child(TextView.markdown(`sm-md-${pg.path}`, body.replace(/^\s+/, "")).selectable(true).text_size(13).text_color(t.foreground)));
+          .child(TextView.markdown(`sm-md-${pg.path}`, body.replace(/^\s+/, "")).selectable(true).text_size(px(13)).text_color(t.foreground)));
   }
 
   close() {
