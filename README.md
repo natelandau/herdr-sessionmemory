@@ -12,6 +12,7 @@ The mod adds a **Vault** button to the right of Herdr's **Files** and **Changes*
 - A page opens as rendered markdown. **Edit** shows the full file, frontmatter included, in an editor with line numbers.
 - **Save** (or Cmd-S or Ctrl-S) writes the file and sets its `updated` date. If an agent changed the file after you opened it, the panel does not overwrite the change. It asks you to reload, overwrite, or keep editing.
 - Unsaved edits stay in memory when you switch spaces. When you come back, the panel opens the same page with your edit, marked **Unsaved**.
+- **Expand** in the panel header hides the terminals and gives the Vault the whole work area. **Restore** brings the terminals back at the panel's earlier width. The terminals keep running while they are hidden.
 - **A−** and **A+** in the panel header make the panel's text smaller or larger, from 80% to 200%. The size applies to the page, the editor, the list, and the dialogs, and it is kept after a restart. To scale all of Herdr, terminals included, use Herdr's zoom instead (Cmd-+ and Cmd--).
 - **+ New** creates a learning, spec, plan, runbook, reference doc, or backlog item with `sessionmemory new`. **Delete** removes a page with `sessionmemory delete` after you confirm.
 
@@ -66,7 +67,9 @@ The install has two parts: copy the mod, then add it to a layout that you own.
     { "id": "sessionmemory", "type": "block", "content": { "mod": "sessionmemory", "props": { "role": "panel" } } }
     ```
 
-    The ids `sessionmemory-button`, `panel`, `panel-body`, and `sessionmemory` must stay as shown. The mod uses them to show and hide its button and panel.
+    The ids `sessionmemory-button`, `main`, `panel`, `panel-body`, and `sessionmemory` must stay as shown. The mod uses them to show and hide its button, the panel, and the terminals.
+
+    To let the panel grow past the shipped 900 px limit, set `"max"` on the `panel` node to a large number, such as `10000`. Without it, **Expand** stops at 900 px.
 
 5. Switch to another layout and back, so that Herdr reads the new structure. Press Ctrl-Shift-L twice, or run `herdr-app do layout.switch --name my-layout`.
 

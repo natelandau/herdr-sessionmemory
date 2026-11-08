@@ -2,7 +2,7 @@
 import { svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { theme, run } from "herdr";
-import { context, resolve, cached, isOpen, togglePanel, ensurePanelListed, buttonBlock, BUTTON } from "./vault.js";
+import { context, resolve, cached, isOpen, isExpanded, collapse, togglePanel, ensurePanelListed, unlistPanel, buttonBlock, BUTTON } from "./vault.js";
 
 export class Button {
   init(cx) {
@@ -33,12 +33,18 @@ export class Button {
   }
 
   sync(cx) {
+    // Whatever closed or switched the panel (Files, Changes, another space), never leave the terminals hidden.
+    if (isExpanded() && !isOpen()) collapse();
     const { folder, on } = context();
     if (folder !== this.folder) { this.check(cx); return; }
     // Remote and folderless spaces are never looked up, so nothing is cached for them.
     if (!on && folder && cached(folder) === undefined) return;
     const block = buttonBlock(), want = this.registered();
     if (block && Boolean(block.hidden) === want) run(want ? "layout.show" : "layout.hide", { id: BUTTON });
+  }
+
+  close() {
+    unlistPanel();
   }
 
   render() {

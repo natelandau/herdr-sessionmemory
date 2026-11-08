@@ -16,7 +16,7 @@ The button matches the shipped Files and Changes buttons: 26 px high, 8 px side 
 
 The panel is a child of the `panel-body` stack, beside Files and Changes. From top to bottom:
 
-1. A header, 42 px high: the book icon, "Vault" in semibold, the project name in `dim` at 12 px, a green (`done`) "Saved" for 2 seconds after a save, **A−** and **A+** text size buttons, and a **+ New** button.
+1. A header, 42 px high: the book icon, "Vault" in semibold, the project name in `dim` at 12 px, a green (`done`) "Saved" for 2 seconds after a save, **Expand** (or **Restore**), **A−** and **A+** text size buttons, and a **+ New** button.
 2. A row of section tabs, 24 px high each: Backlog, Reference, Learnings, Runbooks, Specs, Plans, Logs, in that order. Only sections with at least one page show. Each tab except Backlog shows its page count in `dim` at 11 px. The selected tab has the `selected` background.
 3. An optional bar in `raised` for unsaved changes ("You have unsaved changes." with Save, Discard, Cancel) or for a conflict ("Changed on disk since you opened it." with Reload, Overwrite, Keep editing).
 4. The body. When the panel is 560 px wide or more, the page list (240 px) and the page sit side by side. When it is narrower, the list shows until the person picks a page, then the page shows with a back arrow.
@@ -51,6 +51,8 @@ The mod follows the folder of the focused terminal in the active space, or the s
 | Click **View** | Shows the rendered page. With unsaved edits, the unsaved-changes bar shows first. |
 | Click **Save**, or press Cmd-S or Ctrl-S in the editor | Writes the file. |
 | Click **Delete** | Opens the Delete page dialog. |
+| Click **Expand** | Hides the `main` block (the terminals) and sizes `panel` to `weight: 1`, so the panel fills the work area. The panel's earlier px width is kept in shared state `sessionmemory.expanded`. |
+| Click **Restore** | Shows `main` again and puts `panel` back at its earlier px width. |
 | Click **A−** or **A+** | Makes all panel and dialog text, row heights, and the editor font 10% smaller or larger, from 80% to 200%. The size is kept in shared state `sessionmemory.textScale`. |
 | Click **+ New** | Opens the New page dialog with the current section's kind selected. |
 | Press Enter in a New page field | Same as Create. |
@@ -114,6 +116,9 @@ The layout needs these nodes: a `top-bar` row that holds the `tabs` block and th
 - `sessionmemory reindex -C` takes the project folder, not the vault folder.
 - The panel acts on whatever project is active. A test that drives the panel from the shell acts on the project the person has in front, so run such tests only in a throwaway project.
 - `writeTextFile` writes only on this computer, so the mod hides itself for remote spaces.
+- The layout's `panel` node needs a large `max` (the shipped 900 px stops **Expand** halfway).
+- Whatever closes or switches the panel while it is expanded (Files, Changes, a space without a project) must not leave `main` hidden. The button's 500 ms timer restores `main` whenever the Vault page is not shown.
+- The shipped tab bar in another layout tries to restore every panel named in `workspace.panels` and fails on `sessionmemory`. The button removes the name when its layout goes and adds it back when its layout shows.
 
 ## Done when
 

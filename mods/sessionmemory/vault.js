@@ -3,7 +3,8 @@ import * as fs from "fs/promises";
 import { spaces, panes, focused, exec, readTextFile, layout, run, shared, setShared } from "herdr";
 import { SECTIONS, parseMeta, pageTitle, sortPages, sortDirs, dateOf } from "./lib.js";
 
-export const PANEL = "panel", STACK = "panel-body", CHILD = "sessionmemory", BUTTON = "sessionmemory-button";
+export const PANEL = "panel", STACK = "panel-body", CHILD = "sessionmemory", BUTTON = "sessionmemory-button", MAIN = "main";
+const EXPANDED = "sessionmemory.expanded";
 const MAX_PAGES = 1000, READERS = 8;
 
 // The same "where am I" rule as the shipped Files and Changes mods.
@@ -132,13 +133,46 @@ export function openPanel() {
 }
 
 export function togglePanel() {
-  if (isOpen()) run("layout.hide", { id: PANEL });
+  if (isOpen()) closePanel();
   else openPanel();
 }
 
-// The shipped tab bar restores, per space, only panels named in this list.
+export function closePanel() {
+  collapse();
+  run("layout.hide", { id: PANEL });
+}
+
+// Expanded: the terminals' block is hidden and the panel takes the whole work area.
+export function isExpanded() {
+  return Boolean(shared(EXPANDED));
+}
+
+export function expand() {
+  if (isExpanded()) return;
+  const panel = find(layout(), [PANEL])[PANEL];
+  setShared(EXPANDED, { px: panel?.size?.px ?? 368 });
+  run("layout.hide", { id: MAIN });
+  run("layout.resize", { id: PANEL, weight: 1 });
+}
+
+// Puts the terminals back and the panel at the width it had before expanding.
+export function collapse() {
+  const was = shared(EXPANDED);
+  if (!was) return;
+  setShared(EXPANDED, null);
+  run("layout.show", { id: MAIN });
+  run("layout.resize", { id: PANEL, px: was.px });
+}
+
+// The shipped tab bar restores, per space, only panels named in this list. Listed only while a
+// layout with the Vault panel shows: another layout's tab bar would try to select a missing child.
 export function ensurePanelListed() {
   const list = shared("workspace.panels");
   const now = Array.isArray(list) ? list : ["files", "changes"];
   if (!now.includes(CHILD)) setShared("workspace.panels", [...now, CHILD]);
+}
+
+export function unlistPanel() {
+  const list = shared("workspace.panels");
+  if (Array.isArray(list) && list.includes(CHILD)) setShared("workspace.panels", list.filter(p => p !== CHILD));
 }

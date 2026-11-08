@@ -1,9 +1,9 @@
 // The Vault page in the side panel: sections, a file list, and each page rendered or edited.
 import { div, svg } from "gpui-kit";
 import { v_flex, h_flex, TextView, Editor, EditorState } from "gpui-base";
-import { theme, settings, readTextFile, writeTextFile, watchFolder, exec, run, shared, openOverlay } from "herdr";
+import { theme, settings, readTextFile, writeTextFile, watchFolder, exec, shared, openOverlay } from "herdr";
 import { parsePage, pageTitle, bumpUpdated, isoNow } from "./lib.js";
-import { context, resolve, cached, listSections, forget, isOpen, openPanel, PANEL } from "./vault.js";
+import { context, resolve, cached, listSections, forget, isOpen, openPanel, closePanel, isExpanded, expand, collapse } from "./vault.js";
 import { chip, button, px, textScale, setTextScale } from "./ui.js";
 
 const WIDE = 560;
@@ -43,7 +43,7 @@ export class Panel {
       if (this.key !== key) return;
       if (!paths) {
         this.leave();
-        if (isOpen()) run("layout.hide", { id: PANEL });
+        if (isOpen()) closePanel();
       } else if (paths.project !== this.paths?.project) {
         await this.enter(paths, folder, cx);
       } else {
@@ -354,6 +354,9 @@ export class Panel {
       .child(div().font_semibold().child("Vault"))
       .child(div().flex_1().min_w(0).truncate().text_size(px(12)).text_color(t.dim).child(this.paths.project.split("/").pop()))
       .when(Boolean(this.flash), el => el.child(div().text_size(px(12)).text_color(t.done).child(this.flash?.text ?? "")))
+      .child(div().id("sm-expand").px(6).py(2).rounded(6).text_size(px(12)).text_color(t.muted).cursor_pointer()
+        .hover(s => s.bg(t.hover).text_color(t.foreground))
+        .on_click(() => { if (isExpanded()) collapse(); else expand(); }).child(isExpanded() ? "Restore" : "Expand"))
       .child(this.sizeButton(t, "smaller", "A−", -0.1))
       .child(this.sizeButton(t, "larger", "A+", 0.1))
       .child(h_flex().id("sm-new").h(px(26)).px(9).gap(5).items_center().rounded(6).text_size(px(12)).text_color(t.muted)
